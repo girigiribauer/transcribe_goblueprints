@@ -1,8 +1,10 @@
 package trace
+
 import (
 	"bytes"
 	"testing"
 )
+
 func TestNew(t *testing.T) {
 	var buf bytes.Buffer
 	tracer := New(&buf)
@@ -14,4 +16,9 @@ func TestNew(t *testing.T) {
 			t.Error("'%s'という誤った文字列が出力されました", buf.String())
 		}
 	}
+}
+
+func TestOff(t *testing.T) {
+	var silentTracer Tracer = Off()
+	silentTracer.Trace("データ")
 }
