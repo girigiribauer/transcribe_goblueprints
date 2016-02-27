@@ -2,11 +2,14 @@ package main
 
 import (
 	"log"
+	"os"
 	"net/http"
 	"text/template"
 	"path/filepath"
 	"sync"
 	"flag"
+
+	"github.com/girigiribauer/transcribe_goblueprints/trace"
 )
 
 // templ は1つのテンプレートを表します
@@ -30,6 +33,7 @@ func main() {
 	var addr = flag.String("addr", ":8080", "アプリケーションのアドレス")
 	flag.Parse() // フラグを解釈します
 	r := newRoom()
+	r.tracer = trace.New(os.Stdout)
 	http.Handle("/", &templateHandler{filename: "chat.html"})
 	http.Handle("/room", r)
 	// チャットルームを開始します
