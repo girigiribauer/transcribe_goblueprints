@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 	//"os"
+	"flag"
 	"net/http"
-	"text/template"
 	"path/filepath"
 	"sync"
-	"flag"
+	"text/template"
 
 	//"github.com/girigiribauer/transcribe_goblueprints/trace"
 )
@@ -34,7 +34,7 @@ func main() {
 	flag.Parse() // フラグを解釈します
 	r := newRoom()
 	//r.tracer = trace.New(os.Stdout)
-	http.Handle("/", &templateHandler{filename: "chat.html"})
+	http.Handle("/chat", MustAuth(&templateHandler{filename: "chat.html"}))
 	http.Handle("/room", r)
 	// チャットルームを開始します
 	go r.run()
