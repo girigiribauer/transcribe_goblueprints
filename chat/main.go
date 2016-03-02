@@ -1,15 +1,19 @@
 package main
 
 import (
-	"log"
-	//"os"
 	"flag"
+	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sync"
 	"text/template"
 
 	//"github.com/girigiribauer/transcribe_goblueprints/trace"
+	"github.com/stretchr/gomniauth"
+	"github.com/stretchr/gomniauth/providers/facebook"
+	"github.com/stretchr/gomniauth/providers/github"
+	"github.com/stretchr/gomniauth/providers/google"
 )
 
 // templ は1つのテンプレートを表します
@@ -32,6 +36,24 @@ func (t *templateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func main() {
 	var addr = flag.String("addr", ":8080", "アプリケーションのアドレス")
 	flag.Parse() // フラグを解釈します
+	gomniauth.SetSecurityKey("__my_security_key_is_here__")
+	gomniauth.WithProviders(
+		facebook.New(
+			os.Getenv("CHATAPP_FACEBOOK_CLIENTID"),
+			os.Getenv("CHATAPP_FACEBOOK_SECRETKEY"),
+			"http://localhost:8080/auth/callback/facebook",
+		),
+		github.New(
+			os.Getenv("CHATAPP_GITHUB_CLIENTID"),
+			os.Getenv("CHATAPP_GITHUB_SECRETKEY"),
+			"http://localhost:8080/auth/callback/github",
+		),
+		google.New(
+			os.Getenv("CHATAPP_GOOGLE_CLIENTID"),
+			os.Getenv("CHATAPP_GOOGLE_SECRETKEY"),
+			"http://localhost:8080/auth/callback/google",
+		),
+	)
 	r := newRoom()
 	//r.tracer = trace.New(os.Stdout)
 	http.Handle("/chat", MustAuth(&templateHandler{filename: "chat.html"}))
