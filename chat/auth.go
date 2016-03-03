@@ -68,6 +68,8 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			log.Fatalln("ユーザーの取得に失敗しました", provider, "-", err)
 		}
 
+		fmt.Println("user: ", user)
+		fmt.Println("user: ", user.Name())
 		authCookieValue := objx.New(map[string]interface{}{
 			"name": user.Name(),
 		}).MustBase64()
