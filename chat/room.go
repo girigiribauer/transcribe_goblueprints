@@ -6,11 +6,12 @@ import (
 
 	"github.com/girigiribauer/transcribe_goblueprints/trace"
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/objx"
 )
 
 type room struct {
 	// forwardは他のクライアントに転送するためのメッセージを保持するチャネルです。
-	forward chan []byte
+	forward chan *message
 	// joinはチャットルームに参加しようとしているクライアントのためのチャネルです。
 	join chan *client
 	// leaveはチャットルームから退室しようとしているクライアントのためのチャネルです。
@@ -24,11 +25,11 @@ type room struct {
 // newRoomはすぐに利用できるチャットルームを生成して返します。
 func newRoom() *room {
 	return &room{
-		forward: make(chan []byte),
-		join: make(chan *client),
-		leave: make(chan *client),
+		forward: make(chan *message),
+		join:    make(chan *client),
+		leave:   make(chan *client),
 		clients: make(map[*client]bool),
-		tracer: trace.Off(),
+		tracer:  trace.Off(),
 	}
 }
 
@@ -45,11 +46,11 @@ func (r *room) run() {
 			close(client.send)
 			r.tracer.Trace("クライアントが退室しました")
 		case msg := <-r.forward:
-			r.tracer.Trace("メッセージを受信しました： ", string(msg))
+			r.tracer.Trace("メッセージを受信しました： ", msg.Message)
 			// すべてのクライアントにメッセージを転送
 			for client := range r.clients {
 				select {
-				case client.send <-msg:
+				case client.send <- msg:
 					// メッセージを送信
 					r.tracer.Trace(" -- クライアントに送信されました")
 				default:
@@ -64,27 +65,36 @@ func (r *room) run() {
 }
 
 const (
-	socketBufferSize = 1024
+	socketBufferSize  = 1024
 	messageBufferSize = 256
 )
+
 var upgrader = &websocket.Upgrader{
-	ReadBufferSize: socketBufferSize,
+	ReadBufferSize:  socketBufferSize,
 	WriteBufferSize: socketBufferSize,
 }
+
 func (r *room) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	socket, err := upgrader.Upgrade(w, req, nil)
 	if err != nil {
 		log.Fatal("ServeHTTP:", err)
 		return
 	}
-	client := &client {
-		socket: socket,
-		send: make(chan []byte, messageBufferSize),
-		room: r,
+
+	authCookie, err := req.Cookie("auth")
+	if err != nil {
+		log.Fatal("クッキーの取得に失敗しました：", err)
+		return
 	}
-	r.join <-client
+	client := &client{
+		socket:   socket,
+		send:     make(chan *message, messageBufferSize),
+		room:     r,
+		userData: objx.MustFromBase64(authCookie.Value),
+	}
+	r.join <- client
 	defer func() {
-		r.leave <-client
+		r.leave <- client
 	}()
 	go client.write()
 	client.read()
