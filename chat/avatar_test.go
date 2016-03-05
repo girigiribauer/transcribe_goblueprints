@@ -5,21 +5,28 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	gomniauthtest "github.com/stretchr/gomniauth/test"
 )
 
 func TestAuthAvatar(t *testing.T) {
 	var authAvatar AuthAvatar
-	client := new(client)
-	url, err := authAvatar.GetAvatarURL(client)
+
+	testUser := &gomniauthtest.TestUser{}
+	testUser.On("AvatarURL").Return("", ErrNoAvatarURL)
+	testChatUser := &chatUser{
+		User: testUser,
+	}
+	url, err := authAvatar.GetAvatarURL(testChatUser)
 	if err != ErrNoAvatarURL {
 		t.Error("値が存在しない場合、AuthAvatar.GetAvatarURLはErrNoAvatarURLを返すべきです")
 	}
-	// 値をセットします
+
 	testURL := "http://url-to-avatar/"
-	client.userData = map[string]interface{}{
-		"avatar_url": testURL,
-	}
-	url, err = authAvatar.GetAvatarURL(client)
+	testUser = &gomniauthtest.TestUser{}
+	testChatUser.User = testUser
+	testUser.On("AvatarURL").Return(testURL, nil)
+	url, err = authAvatar.GetAvatarURL(testChatUser)
 	if err != nil {
 		t.Error("値が存在する場合、AuthAvatar.GetAvatarURLはエラーを返すべきではありません")
 	} else {
@@ -31,15 +38,15 @@ func TestAuthAvatar(t *testing.T) {
 
 func TestGravarAvatar(t *testing.T) {
 	var gravatarAvatar GravatarAvatar
-	client := new(client)
-	client.userData = map[string]interface{}{
-		"userid": "0bc83cb571cd1c50ba6f3e8a78ef1346",
+
+	user := &chatUser{
+		uniqueID: "abc",
 	}
-	url, err := gravatarAvatar.GetAvatarURL(client)
+	url, err := gravatarAvatar.GetAvatarURL(user)
 	if err != nil {
 		t.Error("GravatarAvatar.GetAvatarURLはエラーを返すべきではありません")
 	}
-	if url != "//www.gravatar.com/avatar/0bc83cb571cd1c50ba6f3e8a78ef1346" {
+	if url != "//www.gravatar.com/avatar/abc" {
 		t.Errorf("GravatarAvatar.GetAvatarURLが%sという誤った値を返しました", url)
 	}
 }
@@ -53,11 +60,11 @@ func TestFileSystemAvatar(t *testing.T) {
 	}()
 
 	var fileSystemAvatar FileSystemAvatar
-	client := new(client)
-	client.userData = map[string]interface{}{
-		"userid": "abc",
+
+	user := &chatUser{
+		uniqueID: "abc",
 	}
-	url, err := fileSystemAvatar.GetAvatarURL(client)
+	url, err := fileSystemAvatar.GetAvatarURL(user)
 	if err != nil {
 		t.Error("FileSystemAvatar.GetAvatarURLはエラーを返すべきではありません")
 	}
