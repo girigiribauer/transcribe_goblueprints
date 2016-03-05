@@ -18,7 +18,11 @@ import (
 )
 
 // 現在アクティブな Avatar の実装
-var avatars = UseFileSystemAvatar
+var avatars = TryAvatars{
+	UseFileSystemAvatar,
+	UseAuthAvatar,
+	UseGravatar,
+}
 
 // templ は1つのテンプレートを表します
 type templateHandler struct {

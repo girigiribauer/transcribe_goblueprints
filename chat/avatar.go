@@ -18,6 +18,19 @@ type Avatar interface {
 	GetAvatarURL(ChatUser) (string, error)
 }
 
+// TryAvatars は複数の Avatar 実装を順に試すための型です。
+type TryAvatars []Avatar
+
+// GetAvatarURL は TryAvatars のスライスが持つ実装を順に試します
+func (a TryAvatars) GetAvatarURL(u ChatUser) (string, error) {
+	for _, avatar := range a {
+		if url, err := avatar.GetAvatarURL(u); err == nil {
+			return url, nil
+		}
+	}
+	return "", ErrNoAvatarURL
+}
+
 // AuthAvatar は認証サービス用の Avatar です
 type AuthAvatar struct{}
 
