@@ -47,3 +47,19 @@ func (GravatarAvatar) GetAvatarURL(c *client) (string, error) {
 	}
 	return "", ErrNoAvatarURL
 }
+
+// FileSystemAvatar は自らアップロードした場合の Avatar です
+type FileSystemAvatar struct{}
+
+// UseFileSystemAvatar は FileSystemAvatar のインスタンスです
+var UseFileSystemAvatar FileSystemAvatar
+
+// GetAvatarURL は自らアップロードした画像のURLを返します
+func (FileSystemAvatar) GetAvatarURL(c *client) (string, error) {
+	if userid, ok := c.userData["userid"]; ok {
+		if useridStr, ok := userid.(string); ok {
+			return "/avatars/" + useridStr + ".jpg", nil
+		}
+	}
+	return "", ErrNoAvatarURL
+}
