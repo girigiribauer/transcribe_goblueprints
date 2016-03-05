@@ -15,3 +15,19 @@ type Avatar interface {
 	// 場合にはErrNoAvatarURLを返します。
 	GetAvatarURL(c *client) (string, error)
 }
+
+// AuthAvatar は認証サービス用の Avatar です
+type AuthAvatar struct{}
+
+// UseAuthAvatar は AuthAvatar のインスタンスです
+var UseAuthAvatar AuthAvatar
+
+// GetAvatarURL はアバター用の画像URLを返します
+func (AuthAvatar) GetAvatarURL(c *client) (string, error) {
+	if url, ok := c.userData["avatar_url"]; ok {
+		if urlStr, ok := url.(string); ok {
+			return urlStr, nil
+		}
+	}
+	return "", ErrNoAvatarURL
+}
