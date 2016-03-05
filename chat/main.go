@@ -79,6 +79,7 @@ func main() {
 	http.Handle("/upload", &templateHandler{
 		filename: "upload.html",
 	})
+	http.HandleFunc("/uploader", uploaderHandler)
 
 	// チャットルームを開始します
 	go r.run()
