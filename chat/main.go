@@ -18,7 +18,7 @@ import (
 )
 
 // 現在アクティブな Avatar の実装
-var avatars Avatar = UseFileSystemAvatar
+var avatars = UseFileSystemAvatar
 
 // templ は1つのテンプレートを表します
 type templateHandler struct {
@@ -63,7 +63,7 @@ func main() {
 			"http://localhost:8080/auth/callback/google",
 		),
 	)
-	r := newRoom(UseFileSystemAvatar)
+	r := newRoom()
 	//r.tracer = trace.New(os.Stdout)
 	http.Handle("/chat", MustAuth(&templateHandler{filename: "chat.html"}))
 	http.Handle("/login", &templateHandler{filename: "login.html"})
