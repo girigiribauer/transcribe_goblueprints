@@ -6,10 +6,14 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/bitly/go-nsq"
 	mgo "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
+
+const updateDuration = 1 * time.Second
 
 var fatalErr error
 
@@ -58,6 +62,7 @@ func main() {
 			counts = make(map[string]int)
 		}
 		vote := string(m.Body)
+		// 初期化しなくても勝手に0で初期化されるのですぐにインクリメントできる
 		counts[vote]++
 		return nil
 	}))
@@ -67,4 +72,55 @@ func main() {
 		fatal(err)
 		return
 	}
+
+	log.Println("NSQ上での投票を待機します...")
+	var updater *time.Timer
+	updater = time.AfterFunc(updateDuration, func() {
+		countsLock.Lock()
+		defer countsLock.Unlock()
+		if len(counts) == 0 {
+			log.Println("新しい投票はありません。データベースの更新をスキップします")
+		} else {
+			log.Println("データベースを更新します...")
+			log.Println(counts)
+			ok := true
+			for option, count := range counts {
+				// 以下のようなBSON(Binary JSON)でデータを取り出す
+				// {
+				//   "options": {
+				//     "$in": ["happy"]
+				//   }
+				// }
+				sel := bson.M{
+					"options": bson.M{
+						"$in": []string{
+							option,
+						},
+					},
+				}
+				// results.happy の値を3増やす
+				// {
+				//   "$inc": {
+				//     "results.happy": 3
+				//   }
+				// }
+				up := bson.M{
+					"$inc": bson.M{
+						"results." + option: count,
+					},
+				}
+				if _, err := pollData.UpdateAll(sel, up); err != nil {
+					log.Println("更新に失敗しました:", err)
+					ok = false
+					continue
+				}
+				counts[option] = 0
+			}
+			if ok {
+				log.Println("データベースの更新が完了しました")
+				counts = nil // 得票数をリセットします
+			}
+		}
+		updater.Reset(updateDuration)
+	})
 }
