@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"net/http"
 
 	mgo "gopkg.in/mgo.v2"
@@ -25,6 +24,10 @@ func handlePolls(w http.ResponseWriter, r *http.Request) {
 		return
 	case "DELETE":
 		handlePollsDelete(w, r)
+		return
+	case "OPTIONS":
+		w.Header().Add("Access-Control-Allow-Methods", "DELETE")
+		respond(w, r, http.StatusOK, nil)
 		return
 	}
 }
